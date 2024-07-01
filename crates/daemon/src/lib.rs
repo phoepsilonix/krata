@@ -50,6 +50,7 @@ pub struct Daemon {
     idm: DaemonIdmHandle,
     console: DaemonConsoleHandle,
     packer: OciPackerService,
+    runtime: Runtime,
 }
 
 const GUEST_RECONCILER_QUEUE_LEN: usize = 1000;
@@ -92,7 +93,8 @@ impl Daemon {
         let kernel_path = detect_guest_path(&store, "kernel")?;
         let addons_path = detect_guest_path(&store, "addons.squashfs")?;
 
-        let packer = OciPackerService::new(None, &image_cache_dir, OciPlatform::current()).await?;
+        let seed = config.oci.seed.clone().map(PathBuf::from);
+        let packer = OciPackerService::new(seed, &image_cache_dir, OciPlatform::current()).await?;
         let runtime = Runtime::new(host_uuid).await?;
         let glt = GuestLookupTable::new(0, host_uuid);
         let guests_db_path = format!("{}/guests.db", store);
@@ -123,6 +125,14 @@ impl Daemon {
         let guest_reconciler_task = guest_reconciler.launch(guest_reconciler_receiver).await?;
         let generator_task = generator.launch().await?;
 
+        // TODO: Create a way of abstracting early init tasks in kratad.
+        // TODO: Make initial power management policy configurable.
+        let power = runtime.power_management_context().await?;
+        power.set_smt_policy(true).await?;
+        power
+            .set_scheduler_policy("performance".to_string())
+            .await?;
+
         Ok(Self {
             store,
             _config: config,
@@ -136,6 +146,7 @@ impl Daemon {
             idm,
             console,
             packer,
+            runtime,
         })
     }
 
@@ -149,6 +160,7 @@ impl Daemon {
             self.guests.clone(),
             self.guest_reconciler_notify.clone(),
             self.packer.clone(),
+            self.runtime.clone(),
         );
 
         let mut server = Server::builder();
