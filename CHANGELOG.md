@@ -6,6 +6,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15](https://github.com/edera-dev/krata/compare/v0.0.14...v0.0.15) - 2024-08-06
+
+### Fixed
+- *(zone)* waitpid should be limited when no child processes exist (fixes [#304](https://github.com/edera-dev/krata/pull/304)) ([#305](https://github.com/edera-dev/krata/pull/305))
+
+## [0.0.14](https://github.com/edera-dev/krata/compare/v0.0.13...v0.0.14) - 2024-08-06
+
+### Added
+- *(oci)* use local index as resolution cache when appropriate, fixes [#289](https://github.com/edera-dev/krata/pull/289) ([#294](https://github.com/edera-dev/krata/pull/294))
+
+### Fixed
+- *(idm)* process all idm messages in the same frame and use childwait exit notification for exec (fixes [#290](https://github.com/edera-dev/krata/pull/290)) ([#302](https://github.com/edera-dev/krata/pull/302))
+
+### Other
+- init: mount /proc with hidepid=1 ([#277](https://github.com/edera-dev/krata/pull/277))
+- update Cargo.toml dependencies
+
+## [0.0.13](https://github.com/edera-dev/krata/compare/v0.0.12...v0.0.13) - 2024-07-19
+
+### Added
+- *(kratactl)* rework cli to use subcommands ([#268](https://github.com/edera-dev/krata/pull/268))
+- *(krata)* rename guest to zone ([#266](https://github.com/edera-dev/krata/pull/266))
+
+### Other
+- *(deps)* upgrade dependencies, fix hyper io traits issue ([#252](https://github.com/edera-dev/krata/pull/252))
+- update Cargo.lock dependencies
+- update Cargo.toml dependencies
+
+## [0.0.12](https://github.com/edera-dev/krata/compare/v0.0.11...v0.0.12) - 2024-07-12
+
+### Added
+- *(oci)* add configuration value for oci seed file ([#220](https://github.com/edera-dev/krata/pull/220))
+- *(power-management-defaults)* set an initial power management policy ([#219](https://github.com/edera-dev/krata/pull/219))
+
+### Fixed
+- *(daemon)* decrease rate of runtime reconcile ([#224](https://github.com/edera-dev/krata/pull/224))
+- *(power)* ensure that xeon cpus with cpu gaps are not detected as p/e compatible ([#218](https://github.com/edera-dev/krata/pull/218))
+- *(runtime)* use iommu only if devices are needed ([#243](https://github.com/edera-dev/krata/pull/243))
+
+### Other
+- Power management core functionality ([#217](https://github.com/edera-dev/krata/pull/217))
+- *(powermgmt)* disable for now as a hackfix ([#242](https://github.com/edera-dev/krata/pull/242))
+- Initial fluentd support ([#205](https://github.com/edera-dev/krata/pull/205))
+- update Cargo.toml dependencies
+- Use native loopdev implementation instead of loopdev-3 ([#209](https://github.com/edera-dev/krata/pull/209))
+
 ## [0.0.11](https://github.com/edera-dev/krata/compare/v0.0.10...v0.0.11) - 2024-06-23
 
 ### Added

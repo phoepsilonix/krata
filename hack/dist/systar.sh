@@ -22,9 +22,9 @@ tar xf "${OUTPUT_DIR}/bundle-systemd-${TARGET_ARCH}.tgz"
 mkdir sys
 cd sys
 
-mkdir -p usr/bin usr/libexec
+mkdir -p usr/bin usr/sbin
 mv ../krata/kratactl usr/bin
-mv ../krata/kratanet ../krata/kratad usr/libexec/
+mv ../krata/kratanet ../krata/kratad usr/sbin/
 
 if [ "${SYSTAR_VARIANT}" = "openrc" ]
 then
@@ -38,9 +38,9 @@ else
   mv ../krata/kratad.service ../krata/kratanet.service usr/lib/systemd/system/
 fi
 
-mkdir -p usr/share/krata/guest
-mv ../krata/kernel ../krata/initrd usr/share/krata/guest
-mv ../krata/addons.squashfs usr/share/krata/guest/addons.squashfs
+mkdir -p usr/share/krata/zone
+mv ../krata/kernel ../krata/initrd usr/share/krata/zone
+mv ../krata/addons.squashfs usr/share/krata/zone/addons.squashfs
 
 tar czf "${SYSTAR}" --owner 0 --group 0 .
 

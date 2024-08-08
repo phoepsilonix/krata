@@ -12,21 +12,24 @@ import "krata/v1/common.proto";
 service ControlService {
     rpc IdentifyHost(IdentifyHostRequest) returns (IdentifyHostReply);
 
-    rpc CreateGuest(CreateGuestRequest) returns (CreateGuestReply);
-    rpc DestroyGuest(DestroyGuestRequest) returns (DestroyGuestReply);
-    rpc ResolveGuest(ResolveGuestRequest) returns (ResolveGuestReply);
-    rpc ListGuests(ListGuestsRequest) returns (ListGuestsReply);
+    rpc CreateZone(CreateZoneRequest) returns (CreateZoneReply);
+    rpc DestroyZone(DestroyZoneRequest) returns (DestroyZoneReply);
+    rpc ResolveZone(ResolveZoneRequest) returns (ResolveZoneReply);
+    rpc ListZones(ListZonesRequest) returns (ListZonesReply);
     rpc ListDevices(ListDevicesRequest) returns (ListDevicesReply);
 
-    rpc ExecGuest(stream ExecGuestRequest) returns (stream ExecGuestReply);
+    rpc ExecZone(stream ExecZoneRequest) returns (stream ExecZoneReply);
 
-    rpc ConsoleData(stream ConsoleDataRequest) returns (stream ConsoleDataReply);
-    rpc ReadGuestMetrics(ReadGuestMetricsRequest) returns (ReadGuestMetricsReply);
-    
+    rpc AttachZoneConsole(stream ZoneConsoleRequest) returns (stream ZoneConsoleReply);
+    rpc ReadZoneMetrics(ReadZoneMetricsRequest) returns (ReadZoneMetricsReply);
+
     rpc SnoopIdm(SnoopIdmRequest) returns (stream SnoopIdmReply);
     rpc WatchEvents(WatchEventsRequest) returns (stream WatchEventsReply);
 
     rpc PullImage(PullImageRequest) returns (stream PullImageReply);
+
+    rpc GetHostCpuTopology(HostCpuTopologyRequest) returns (HostCpuTopologyReply);
+    rpc SetHostPowerManagementPolicy(HostPowerManagementPolicy) returns (HostPowerManagementPolicy);
 }
 
 message IdentifyHostRequest {}
@@ -37,41 +40,41 @@ message IdentifyHostReply {
     string krata_version = 3;
 }
 
-message CreateGuestRequest {
-    krata.v1.common.GuestSpec spec = 1;
+message CreateZoneRequest {
+    krata.v1.common.ZoneSpec spec = 1;
 }
 
-message CreateGuestReply {
-    string guest_id = 1;
+message CreateZoneReply {
+    string Zone_id = 1;
 }
 
-message DestroyGuestRequest {
-    string guest_id = 1;
+message DestroyZoneRequest {
+    string Zone_id = 1;
 }
 
-message DestroyGuestReply {}
+message DestroyZoneReply {}
 
-message ResolveGuestRequest {
+message ResolveZoneRequest {
     string name = 1;
 }
 
-message ResolveGuestReply {
-    krata.v1.common.Guest guest = 1;
+message ResolveZoneReply {
+    krata.v1.common.Zone Zone = 1;
 }
 
-message ListGuestsRequest {}
+message ListZonesRequest {}
 
-message ListGuestsReply {
-    repeated krata.v1.common.Guest guests = 1;
+message ListZonesReply {
+    repeated krata.v1.common.Zone Zones = 1;
 }
 
-message ExecGuestRequest {
-    string guest_id = 1;
-    krata.v1.common.GuestTaskSpec task = 2;
+message ExecZoneRequest {
+    string Zone_id = 1;
+    krata.v1.common.ZoneTaskSpec task = 2;
     bytes data = 3;
 }
 
-message ExecGuestReply {
+message ExecZoneReply {
     bool exited = 1;
     string error = 2;
     int32 exit_code = 3;
@@ -79,12 +82,12 @@ message ExecGuestReply {
     bytes stderr = 5;
 }
 
-message ConsoleDataRequest {
-    string guest_id = 1;
+message ZoneConsoleRequest {
+    string Zone_id = 1;
     bytes data = 2;
 }
 
-message ConsoleDataReply {
+message ZoneConsoleReply {
     bytes data = 1;
 }
 
@@ -92,20 +95,20 @@ message WatchEventsRequest {}
 
 message WatchEventsReply {
     oneof event {
-        GuestChangedEvent guest_changed = 1;
+        ZoneChangedEvent Zone_changed = 1;
     }
 }
 
-message GuestChangedEvent {
-    krata.v1.common.Guest guest = 1;
+message ZoneChangedEvent {
+    krata.v1.common.Zone Zone = 1;
 }
 
-message ReadGuestMetricsRequest {
-    string guest_id = 1;
+message ReadZoneMetricsRequest {
+    string Zone_id = 1;
 }
 
-message ReadGuestMetricsReply {
-    krata.v1.common.GuestMetricNode root = 1;
+message ReadZoneMetricsReply {
+    krata.v1.common.ZoneMetricNode root = 1;
 }
 
 message SnoopIdmRequest {}
@@ -181,6 +184,7 @@ message PullImageRequest {
     string image = 1;
     krata.v1.common.OciImageFormat format = 2;
     bool overwrite_cache = 3;
+    bool update = 4;
 }
 
 message PullImageReply {
@@ -199,4 +203,31 @@ message ListDevicesRequest {}
 
 message ListDevicesReply {
     repeated DeviceInfo devices = 1;
+}
+
+enum HostCpuTopologyClass {
+    HOST_CPU_TOPOLOGY_CLASS_STANDARD = 0;
+    HOST_CPU_TOPOLOGY_CLASS_PERFORMANCE = 1;
+    HOST_CPU_TOPOLOGY_CLASS_EFFICIENCY = 2;
+}
+
+message HostCpuTopologyInfo {
+    uint32 core = 1;
+    uint32 socket = 2;
+    uint32 node = 3;
+    uint32 thread = 4;
+    HostCpuTopologyClass class = 5;
+}
+
+message HostCpuTopologyRequest {}
+
+message HostCpuTopologyReply {
+    repeated HostCpuTopologyInfo cpus = 1;
+}
+
+message HostPowerManagementPolicyRequest {}
+
+message HostPowerManagementPolicy {
+    string scheduler = 1;
+    bool smt_awareness = 2;
 }

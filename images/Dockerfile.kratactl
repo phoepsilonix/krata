@@ -1,4 +1,4 @@
-FROM rust:1.79-alpine AS build
+FROM rust:1.80-alpine@sha256:596c7fa13f7458097b8c88ad83f33420da0341e2f5b544e34d9aa18a22fe11d0 AS build
 RUN apk update && apk add protoc protobuf-dev build-base && rm -rf /var/cache/apk/*
 ENV TARGET_LIBC=musl TARGET_VENDOR=unknown
 
@@ -7,6 +7,6 @@ COPY . .
 RUN ./hack/build/cargo.sh build --release --bin kratactl
 RUN mv ./target/$(./hack/build/target.sh)/release/kratactl /usr/sbin
 
-FROM cgr.dev/chainguard/static AS final
+FROM scratch
 ENTRYPOINT ["/usr/sbin/kratactl"]
 COPY --from=build /usr/sbin/kratactl /usr/sbin/kratactl

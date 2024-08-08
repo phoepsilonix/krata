@@ -1,7 +1,4 @@
 name: release-plz
-permissions:
-  pull-requests: write
-  contents: write
 on:
   push:
     branches:
@@ -13,24 +10,34 @@ jobs:
   release-plz:
     name: release-plz
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
-    - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+    - name: harden runner
+      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
       with:
         egress-policy: audit
-    - uses: actions/create-github-app-token@ad38cffc07bac6e3857755914c4c88bfd2db4da4 # v1.10.2
+    - name: generate cultivator token
+      uses: actions/create-github-app-token@31c86eb3b33c9b601a1f60f98dcbfd1d70f379b4 # v1.10.3
       id: generate-token
       with:
         app-id: "${{ secrets.EDERA_CULTIVATION_APP_ID }}"
         private-key: "${{ secrets.EDERA_CULTIVATION_APP_PRIVATE_KEY }}"
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - name: checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         submodules: recursive
         fetch-depth: 0
         token: "${{ steps.generate-token.outputs.token }}"
-    - uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f # stable
-    - run: ./hack/ci/install-linux-deps.sh
+    - name: install stable rust toolchain
+      run: |
+        rustup update --no-self-update stable
+        rustup default stable
+    - name: install linux dependencies
+      run: ./hack/ci/install-linux-deps.sh
     - name: release-plz
-      uses: MarcoIeni/release-plz-action@86afd21a7b114234aab55ba0005eed52f77d89e4 # v0.5.62
+      uses: MarcoIeni/release-plz-action@92ae919a6b3e27c0472659e3a7414ff4a00e833f # v0.5.64
       env:
         GITHUB_TOKEN: "${{ steps.generate-token.outputs.token }}"
         CARGO_REGISTRY_TOKEN: "${{ secrets.KRATA_RELEASE_CARGO_TOKEN }}"

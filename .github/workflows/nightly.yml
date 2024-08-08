@@ -3,8 +3,10 @@ on:
   workflow_dispatch:
   schedule:
   - cron: "0 10 * * *"
+permissions:
+  contents: read
 jobs:
-  server:
+  full-build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -14,45 +16,49 @@ jobs:
         - aarch64
     env:
       TARGET_ARCH: "${{ matrix.arch }}"
-    name: nightly server ${{ matrix.arch }}
+      CI_NEEDS_FPM: "1"
+    name: nightly full build linux-${{ matrix.arch }}
     steps:
-    - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+    - name: harden runner
+      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
       with:
         egress-policy: audit
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - name: checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         submodules: recursive
-    - uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f # stable
-      with:
-        targets: "${{ matrix.arch }}-unknown-linux-gnu,${{ matrix.arch }}-unknown-linux-musl"
-    - run: ./hack/ci/install-linux-deps.sh
-    - run: ./hack/dist/bundle.sh
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+    - name: install stable rust toolchain with ${{ matrix.arch }}-unknown-linux-gnu and ${{ matrix.arch }}-unknown-linux-musl rust targets
+      run: |
+        rustup update --no-self-update stable
+        rustup default stable
+        rustup target add ${{ matrix.arch }}-unknown-linux-gnu ${{ matrix.arch }}-unknown-linux-musl
+    - name: install linux dependencies
+      run: ./hack/ci/install-linux-deps.sh
+    - name: build systemd bundle
+      run: ./hack/dist/bundle.sh
+    - name: upload systemd bundle
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
       with:
         name: krata-bundle-systemd-${{ matrix.arch }}
         path: "target/dist/bundle-systemd-${{ matrix.arch }}.tgz"
         compression-level: 0
-    - run: ./hack/dist/deb.sh
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+    - name: build deb package
+      run: ./hack/dist/deb.sh
+    - name: upload deb package
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
       with:
         name: krata-debian-${{ matrix.arch }}
         path: "target/dist/*.deb"
         compression-level: 0
-    - run: ./hack/dist/apk.sh
-      env:
-        KRATA_KERNEL_BUILD_SKIP: "1"
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+    - name: build apk package
+      run: ./hack/dist/apk.sh
+    - name: upload apk package
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
       with:
         name: krata-alpine-${{ matrix.arch }}
         path: "target/dist/*_${{ matrix.arch }}.apk"
         compression-level: 0
-    - run: ./hack/os/build.sh
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-      with:
-        name: krata-os-${{ matrix.arch }}
-        path: "target/os/krata-${{ matrix.arch }}.qcow2"
-        compression-level: 0
-  client:
+  kratactl-build:
     strategy:
       fail-fast: false
       matrix:
@@ -67,36 +73,93 @@ jobs:
       TARGET_OS: "${{ matrix.platform.os }}"
       TARGET_ARCH: "${{ matrix.platform.arch }}"
     runs-on: "${{ matrix.platform.on }}"
-    name: nightly client ${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+    name: nightly kratactl build ${{ matrix.platform.os }}-${{ matrix.platform.arch }}
     defaults:
       run:
         shell: bash
     steps:
-    - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+    - name: harden runner
+      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
       with:
         egress-policy: audit
-    - run: git config --global core.autocrlf false && git config --global core.eol lf
+    - name: configure git line endings
+      run: git config --global core.autocrlf false && git config --global core.eol lf
       if: ${{ matrix.platform.os == 'windows' }}
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - name: checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         submodules: recursive
-    - uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f # stable
-      if: ${{ matrix.platform.os != 'darwin' }}
-    - uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f # stable
-      with:
-        targets: "${{ matrix.platform.arch }}-apple-darwin"
+    - name: install stable rust toolchain
+      run: |
+        rustup update --no-self-update stable
+        rustup default stable
+    - name: install ${{ matrix.platform.arch }}-apple-darwin rust target
+      run: "rustup target add --toolchain stable ${{ matrix.platform.arch }}-apple-darwin"
       if: ${{ matrix.platform.os == 'darwin' }}
-    - uses: homebrew/actions/setup-homebrew@4b34604e75af8f8b23b454f0b5ffb7c5d8ce0056 # master
+    - name: setup homebrew
+      uses: homebrew/actions/setup-homebrew@4b34604e75af8f8b23b454f0b5ffb7c5d8ce0056 # master
       if: ${{ matrix.platform.os == 'darwin' }}
-    - run: ./hack/ci/install-${{ matrix.platform.deps }}-deps.sh
-    - run: ./hack/build/cargo.sh build --release --bin kratactl
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+    - name: install ${{ matrix.platform.deps }} dependencies
+      run: ./hack/ci/install-${{ matrix.platform.deps }}-deps.sh
+    - name: cargo build kratactl
+      run: ./hack/build/cargo.sh build --release --bin kratactl
+    - name: upload kratactl
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
       with:
         name: kratactl-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
         path: "target/*/release/kratactl"
       if: ${{ matrix.platform.os != 'windows' }}
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+    - name: upload kratactl
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
       with:
         name: kratactl-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
         path: "target/*/release/kratactl.exe"
       if: ${{ matrix.platform.os == 'windows' }}
+  oci-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+        - kratactl
+        - kratad
+        - kratanet
+        - krata-zone
+    name: nightly oci build ${{ matrix.component }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    steps:
+    - name: harden runner
+      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+      with:
+        egress-policy: audit
+    - name: checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        submodules: recursive
+    - name: install cosign
+      uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
+    - name: setup docker buildx
+      uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+    - name: login to container registry
+      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      with:
+        registry: ghcr.io
+        username: "${{ github.actor }}"
+        password: "${{ secrets.GITHUB_TOKEN }}"
+    - name: docker build and push ${{ matrix.component }}
+      uses: docker/build-push-action@5176d81f87c23d6fc96624dfdbcd9f3830bbe445 # v6.5.0
+      id: push
+      with:
+        file: ./images/Dockerfile.${{ matrix.component }}
+        platforms: linux/amd64,linux/aarch64
+        tags: "ghcr.io/edera-dev/${{ matrix.component }}:nightly"
+        push: true
+    - name: cosign sign ${{ matrix.component }}
+      run: cosign sign --yes "${TAGS}@${DIGEST}"
+      env:
+        DIGEST: "${{ steps.push.outputs.digest }}"
+        TAGS: "ghcr.io/edera-dev/${{ matrix.component }}:nightly"
+        COSIGN_EXPERIMENTAL: "true"
