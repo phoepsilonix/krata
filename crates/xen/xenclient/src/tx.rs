@@ -156,13 +156,13 @@ impl ClientTransaction {
         self.tx
             .write_string(
                 format!("{}/memory/static-max", self.dom_path).as_str(),
-                &(base.mem_mb * 1024).to_string(),
+                &(base.max_mem_mb * 1024).to_string(),
             )
             .await?;
         self.tx
             .write_string(
                 format!("{}/memory/target", self.dom_path).as_str(),
-                &(base.mem_mb * 1024).to_string(),
+                &(base.target_mem_mb * 1024).to_string(),
             )
             .await?;
         self.tx
@@ -194,7 +194,16 @@ impl ClientTransaction {
             self.tx.mkdir(&path).await?;
             self.tx.set_perms(&path, ro_perm).await?;
             let path = format!("{}/cpu/{}/availability", self.dom_path, i);
-            self.tx.write_string(&path, "online").await?;
+            self.tx
+                .write_string(
+                    &path,
+                    if i < base.target_vcpus {
+                        "online"
+                    } else {
+                        "offline"
+                    },
+                )
+                .await?;
             self.tx.set_perms(&path, ro_perm).await?;
         }
         Ok(())

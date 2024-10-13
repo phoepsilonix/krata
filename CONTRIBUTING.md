@@ -23,12 +23,11 @@ While it's totally fine to simply bring it up on our Discord, we encourage openi
   - Else skip to step 3.
 2. Discuss the change with the teams to ensure we have consensus on the change being welcome.
 3. We encourage opening the PR sooner than later, and prefixing with `WIP:` so GitHub labels it as a Draft.
-4. Please include a detailed list of changes that the PR makes
+4. Please include a detailed list of changes that the PR makes.
 5. Once the PR is ready for review, remove the Draft status, and request a review from `edera-dev/engineering`.
 6. After the review cycle concludes and we know you are ready for merging, a team member will submit the PR to the merge queue.
 
 
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
 [Security Policy]: ./SECURITY.md
-[Development Guide]: ./DEV.md
 [good-first-issues]: https://github.com/edera-dev/krata/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
